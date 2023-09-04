@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  inertia-mysql:
+    image: mysql:5.7.43
+    container_name: inertia-mysql
+    restart: unless-stopped
+    volumes:
+      - ./mysql:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: supersecret
+
+  inertia-nginx:
+    image: nginx:1.25.1-alpine
+    container_name: inertia-nginx
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certs:/etc/nginx/conf.d/certs
+    ports:
+      - "80:80"
+      - "443:443"
+
+  inertia-mailhog:
+    image: corpusops/mailhog:v1.0.1
+    container_name: inertia-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  inertia-app:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: inertia-app
+    volumes:
+      - ./src:/var/www
+      - ./certs:/var/certs
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "5173:5173"
+    restart: unless-stopped
+    working_dir: /var/www
+    depends_on:
+      - inertia-nginx
+      - inertia-mysql
+      - inertia-mailhog
